@@ -246,3 +246,45 @@ k-1/
 首次实现。两个错误（`LogOutput.log:439` 与 `:441-444`）：
 1. 在「屏幕就绪 + 6s」就发请求，撞在引擎自己 `will try again` → `again` → `reverting` 流程中间，必然再失败。
 2. `TickObserve` 只采样一次就判成功，读到的是回退前的**瞬态值** → 假阳性。
+
+---
+
+## 版本回滚
+
+仓库按版本打了 tag，改坏了直接回滚：
+
+```powershell
+cd D:\EFT-WORKS\full\k-1
+
+git log --oneline            # 看有哪些版本
+git tag                      # 看有哪些 tag
+
+# 方式一：回到某个 tag（工作区会变成那个版本的代码）
+git checkout v0.3.0
+
+# 方式二：丢弃全部未提交改动，回到最近一次提交
+git checkout -- .
+```
+
+> 注意：`git checkout v0.3.0` 之后处于 detached HEAD 状态。
+> 想在那个版本上继续改，用 `git switch -c 从v0.3.0继续`。
+> 想回到最新代码，用 `git switch main`。
+
+## 本仓库的 git 本地配置
+
+这台机器上访问 GitHub 走的是 SteamTools（Watt Toolkit）的本地代理，
+它用一个自签根证书做中间人，而 Git 的 OpenSSL 后端只认 Mozilla 证书包，
+所以仓库局部配置了两个东西（**只影响本仓库，没动你的全局 git 配置**）：
+
+| 配置 | 值 | 作用 |
+| --- | --- | --- |
+| `http.sslBackend` | `openssl` | 用 OpenSSL 而不是 Windows Schannel |
+| `http.sslCAInfo` | `.git/k1-ca-bundle.pem` | Mozilla 证书包 + SteamTools 根证书合并 |
+| `credential.helper` | `!gh auth git-credential` | 复用 `gh` 的 token，避免弹 Credential Manager 选单 |
+
+换到别的机器或网络环境时，如果推送报证书错误，可以先清掉这两项试：
+
+```powershell
+git config --local --unset http.sslCAInfo
+git config --local --unset http.sslBackend
+```
