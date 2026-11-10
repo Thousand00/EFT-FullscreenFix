@@ -1,22 +1,26 @@
-# 构建产物
+# ── 构建产物 ─────────────────────────────────
 bin/
 obj/
 dist/
+artifacts/
+*.binlog
+project.assets.json
+project.nuget.cache
 
-# 本地日志（插件运行时会写到 BepInEx\K1Logs\，这里防一手误放进工程目录）
+# ── 本地工作区（体积大、含反编译与探针工程，不入库）──
+# work/ 约 750 MB：Il2CppDumper 产物、DXGI 探针工程、反编译代码、日志快照
+/work/
+# _archive/ 是已停用的旧工程与备份（旧顶层 src、多份 _backup_*、cmcn 汉化插件等）
+/_archive/
+
+# ── 运行期日志 ───────────────────────────────
 K1Logs/
 *.log
 
-# Visual Studio / Rider / VS Code
+# ── IDE ─────────────────────────────────────
 .vs/
 .idea/
 .vscode/
 *.user
 *.suo
 *.DotSettings.user
-
-# 构建/恢复缓存
-artifacts/
-*.binlog
-project.assets.json
-project.nuget.cache

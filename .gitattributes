@@ -1,11 +1,13 @@
 # 统一按 LF 存储，检出时由 Git 按平台转换
 * text=auto eol=lf
 
-*.cs   text eol=lf
+*.cs     text eol=lf
 *.csproj text eol=lf
-*.md   text eol=lf
-*.json text eol=lf
+*.md     text eol=lf
+*.json   text eol=lf
+*.yml    text eol=lf
 
-*.dll  binary
-*.pdb  binary
-*.png  binary
+*.dll    binary
+*.pdb    binary
+*.png    binary
+*.zip    binary
