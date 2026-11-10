@@ -2,7 +2,7 @@
 
 SPT 5.0 BE 的客户端插件（BepInEx 5 / IL2CPP），解决「每次启动都变成无边框全屏」。
 
-当前版本：**v0.3.0**
+当前版本：**v0.4.0**
 
 ---
 
@@ -37,6 +37,14 @@ Failed to change display to ExclusiveFullscreen...reverting to FullscreenWindow
 
 ## 它做什么
 
+0. **感知「模式选择」界面**（v0.4.0 新增）。5.0 BE 模仿线上的流程是
+   `登录 → 设备校验 → 侧别选择 → 模式选择（PVE/PVP/PVPS） → 载入存档 → 主菜单`。
+   那个选择页停留多久由玩家决定，而它正好卡在「引擎正在切场景」的中间——
+   这时候请求独占全屏会被立刻回退（实测只撑 0.58s）。所以：
+   - 挂着 `CharacterSelectionScreen.Show/Close` 与
+     `CharacterSelectionScreenController.SubmitAsync/Submit`；
+   - 玩家还停在那页时**不发请求**，并把超时计时往后推；
+   - 玩家选完模式后给 8s 宽限（主菜单信号优先），不再干等 45s。
 1. 挂 `EFT.UI.MenuScreen.Show` 的**全部重载**（两个），主菜单一出现就得到确切信号。
    等不到就按超时退化（`SettleTimeoutSeconds`，默认 45s）。
 2. 信号到 → 等 `InitialDelaySeconds` → 调
@@ -203,7 +211,8 @@ k-1/
    ├─ Display/
    │  └─ DisplayApi.cs              EFTDisplayHelper 的反射封装
    ├─ Hooks/
-   │  └─ MenuHook.cs                挂 MenuScreen.Show 的全部重载
+   │  ├─ MenuHook.cs                挂 MenuScreen.Show 的全部重载
+   │  └─ ScreenHooks.cs             挂「模式选择」界面：开着就别动手，选完再动
    └─ Runtime/
       └─ FullscreenRetrier.cs       状态机：等信号 → 重试 → 观察 → 退避
 ```
@@ -211,6 +220,29 @@ k-1/
 ---
 
 ## 版本历史
+
+### v0.4.0（2026-11-10）
+
+修掉「玩家停在模式选择界面时白试一次」的设计错误。
+
+实测日志（v0.3.1，2026-11-10 23:03）：
+
+```
+23:03:49.638 等待信号超时，按定时判断：等 1.0s 后发请求。   ← 45s 兜底，此刻人还在选择页
+23:03:50.670 [观察] FullScreenWindow → ExclusiveFullScreen
+23:03:51.247 [观察] ExclusiveFullScreen → FullScreenWindow  ← 只撑了 0.58s
+23:03:56.834 ✘ 第 1 次尝试未成功
+23:04:00.839 第 2/10 次尝试                                  ← 已选完模式、进了主菜单流程
+23:04:04.262 ✔ 第 2 次尝试成功：已连续保持 3.0s
+23:04:07.884 检测到主菜单已显示                               ← 真正的信号比第 1 次晚 17s
+```
+
+问题不是「时机没等够」，而是**把「等信号的上限」当成了「可以动手了」**。
+选择界面停留时长不由插件控制，45s 只是个魔法数，这次刚好落在选择页里。
+
+改动：新增 `ScreenHooks`，三段信号（选择页打开 / 选完模式 / 主菜单出现）；
+`TickWaitSignal` 在「选择页开着且未选定模式」时不发请求并把超时往后推；
+选定模式后 8s 宽限；另加 180s 硬上限，万一 `Close` 钩子没挂上也不会彻底罢工。
 
 ### v0.3.0（2026-11-10）
 
