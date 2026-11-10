@@ -1,0 +1,22 @@
+# 构建产物
+bin/
+obj/
+dist/
+
+# 本地日志（插件运行时会写到 BepInEx\K1Logs\，这里防一手误放进工程目录）
+K1Logs/
+*.log
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.DotSettings.user
+
+# 构建/恢复缓存
+artifacts/
+*.binlog
+project.assets.json
+project.nuget.cache
