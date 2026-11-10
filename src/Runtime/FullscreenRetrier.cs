@@ -49,6 +49,36 @@ public sealed class FullscreenRetrier : MonoBehaviour
     /// <summary>主菜单是否已经显示过。由 MenuHook 写入。</summary>
     internal static bool MenuSeen;
 
+    /// <summary>
+    /// 「角色/模式选择界面」是否正开着。由 <see cref="Hooks.ScreenHooks"/> 写入。
+    ///
+    /// 5.0 BE 模仿线上的流程：登录 → 设备校验 → 侧别选择 → **模式选择（PVE / PVP / PVPS）**
+    /// → 载入存档 → 主菜单。那个选择界面停留多久完全由玩家决定，
+    /// 而它就卡在「引擎正在切场景」的中间——这时候请求独占全屏必然被立刻回退。
+    ///
+    /// v0.3.1 及更早的版本不知道这个界面存在，于是靠 SettleTimeoutSeconds（45s）超时兜底
+    /// 直接发请求；玩家在那界面上多停一会儿，请求就正好落在里面，必然扑空。
+    /// 2026-11-10 23:03 的实测就是这个过程：第 1 次尝试在界面上失败（0.58s 被回退），
+    /// 第 2 次在玩家选完模式之后才成功。
+    /// </summary>
+    internal static bool SelectionActive;
+
+    /// <summary>玩家是否已经在这个界面上做出了选择（点了某个模式）。由 ScreenHooks 写入。</summary>
+    internal static bool ModeChosen;
+
+    /// <summary>选择界面是什么时候开的（<see cref="Time.unscaledTime"/>）。用于给「一直开着」设一个硬上限。</summary>
+    internal static float SelectionSince;
+
+    /// <summary>
+    /// 「停在选择界面就无限期忍住不发请求」的硬上限（秒）。
+    ///
+    /// 为什么需要：万一 <c>Close()</c> 那个钩子没挂上（游戏改版、方法改名），
+    /// SelectionActive 就会永远为真，我们岂不是永远不动手了？
+    /// 超过这个时长就当作「信号不可信」，退回原来的定时判断——
+    /// 宁可多发一次可能失败的请求，也不能彻底罢工。
+    /// </summary>
+    private const float SelectionHardCapSeconds = 180f;
+
     private static FullscreenRetrier _current;
 
     private RetrySettings _cfg;
@@ -78,6 +108,10 @@ public sealed class FullscreenRetrier : MonoBehaviour
 
     private bool _started;
     private bool _finished;
+    private bool _selectionCapLogged;
+
+    /// <summary>选定模式后，最多再等多久就自己动手（主菜单信号优先）。</summary>
+    private const float ModeChosenGraceSeconds = 8f;
 
     // ---- 供外部（Plugin / MenuHook）使用 ----
 
@@ -95,6 +129,46 @@ public sealed class FullscreenRetrier : MonoBehaviour
         catch (Exception ex)
         {
             K1Log.Warn($"处理主菜单信号失败：{ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>模式/角色选择界面打开或关闭。由 ScreenHooks 写入。</summary>
+    internal static void SignalSelectionState(bool active)
+    {
+        if (SelectionActive == active) return;
+        SelectionActive = active;
+
+        if (active)
+        {
+            SelectionSince = SafeNow();
+
+            var inst0 = _current;
+            if (inst0 != null) inst0._selectionCapLogged = false;
+        }
+
+        K1Log.Info(active
+            ? "进入「模式选择」界面 —— 这期间不发请求；界面关掉之后再动。"
+            : "离开「模式选择」界面。");
+    }
+
+    /// <summary>玩家已经在选择界面上选定了模式（点了 PVE/PVP/PVPS）。</summary>
+    internal static void SignalModeChosen()
+    {
+        if (ModeChosen) return;
+        ModeChosen = true;
+
+        K1Log.Info("玩家已选定游戏模式 —— 引擎开始载入存档并切到主菜单，可以准备发请求了。");
+
+        var inst = _current;
+        if (inst == null) return;
+
+        try
+        {
+            inst.OnModeChosen();
+        }
+        catch (Exception ex)
+        {
+            K1Log.Warn($"处理「已选定模式」信号失败：{ex.GetType().Name}: {ex.Message}");
         }
     }
 
@@ -209,12 +283,42 @@ public sealed class FullscreenRetrier : MonoBehaviour
     /// </summary>
     private void TickWaitSignal(float now)
     {
+        // 玩家还停在「模式选择」界面上：这时候绝对不能动手。
+        //   那个界面卡在引擎切场景的中间，请求会被立刻回退（实测 0.58s 就被打回来）。
+        //   这里同时把超时时间往后推——玩家想在这界面上停多久就停多久，
+        //   不该被我们那个 45s 的兜底计时催着发一个注定失败的请求。
+        if (!MenuSeen && SelectionActive && !ModeChosen)
+        {
+            float held = now - SelectionSince;
+
+            if (held < SelectionHardCapSeconds)
+            {
+                _phaseEndsAt = now + _cfg.SettleTimeoutSeconds;
+                return;
+            }
+
+            // 选择界面的「关闭」信号显然没来（钩子没挂上，或者游戏一直没关它）。
+            // 这时不能再等了，退回定时判断，宁可多试一次也不能彻底罢工。
+            if (!_selectionCapLogged)
+            {
+                _selectionCapLogged = true;
+                K1Log.Warn(
+                    $"「模式选择」界面已经开着 {held:F0}s 还没关，超过硬上限 {SelectionHardCapSeconds:F0}s。"
+                    + " 当作信号不可信，改回定时判断继续尝试。");
+            }
+        }
+
         if (!MenuSeen && now < _phaseEndsAt) return;
 
         // 先转移状态，再写日志——顺序不能反。
         if (MenuSeen)
         {
             EnterDelay(now, _cfg.InitialDelaySeconds, "主菜单已出现");
+        }
+        else if (ModeChosen)
+        {
+            // 有「已选定模式」这个明确信号，但主菜单钩子没等到——照样可以动手。
+            EnterDelay(now, _cfg.InitialDelaySeconds, "已选定游戏模式，主菜单钩子未触发，按选择完成信号动手");
         }
         else
         {
@@ -335,6 +439,28 @@ public sealed class FullscreenRetrier : MonoBehaviour
     }
 
     // ------------------------------------------------------------ helpers
+
+    /// <summary>
+    /// 玩家点了某个模式之后：主菜单还要等存档载入才出来，但我们不必干等到 45s 兜底。
+    ///
+    /// 实测（2026-11-10 23:04）从「选定模式」到「主菜单 Show」约 7 秒，
+    /// 而真正切成功只需要引擎不再折腾的那一两秒。这里给一个 8s 的宽限：
+    /// 主菜单信号先到就用主菜单，没到就 8s 后自己动手。
+    /// </summary>
+    private void OnModeChosen()
+    {
+        if (!_started || _cfg == null || !_cfg.Enabled) return;
+        if (_phase != Phase.WaitSignal) return;
+
+        float now = SafeNow();
+        float grace = now + ModeChosenGraceSeconds;
+
+        if (_phaseEndsAt <= now || _phaseEndsAt > grace)
+        {
+            _phaseEndsAt = grace;
+            K1Log.Detail($"[信号] 已选定模式，把动手时间收窄到 {ModeChosenGraceSeconds:F0}s 内（主菜单信号仍优先）。");
+        }
+    }
 
     private void OnMenuReady()
     {

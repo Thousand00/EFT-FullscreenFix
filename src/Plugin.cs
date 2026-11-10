@@ -38,7 +38,7 @@ public sealed class Plugin : BasePlugin
 {
     public const string PluginGuid = "dsh.k1.fullscreen";
     public const string PluginName = "全屏修复 K1";
-    public const string PluginVersion = "0.3.1";
+    public const string PluginVersion = "0.4.0";
 
     internal static new ManualLogSource Log;
     internal static Plugin Instance;
@@ -89,6 +89,7 @@ public sealed class Plugin : BasePlugin
             K1Log.Info("已添加 FullscreenRetrier 组件。");
 
             MenuHook.Apply(new Harmony(PluginGuid));
+            ScreenHooks.Apply(new Harmony(PluginGuid));
         }
         catch (Exception ex)
         {
