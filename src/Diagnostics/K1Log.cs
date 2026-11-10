@@ -23,8 +23,20 @@ internal static class K1Log
     private static string _path;
     private static bool _broken;
 
+    /// <summary>
+    /// 是否输出高频细节（<see cref="Detail"/>）。由 Plugin.Load() 按 General/Verbose 设置。
+    /// v0.3.0 里这个开关只被读进配置快照却没真正生效，v0.3.1 补上。
+    /// </summary>
+    private static bool _verbose = true;
+
     internal static string FilePath => _path ?? "(未初始化)";
     internal static bool FileOk => _writer != null;
+
+    /// <summary>由 Plugin.Load() 在配置快照完成后调用。</summary>
+    internal static void SetVerbose(bool verbose)
+    {
+        _verbose = verbose;
+    }
 
     internal static void Init()
     {
@@ -117,7 +129,11 @@ internal static class K1Log
     }
 
     /// <summary>只写文件、不进 BepInEx 日志——高频细节用这个，避免把主日志顶爆。</summary>
-    internal static void Detail(string msg) => Write("INFO", msg, false);
+    internal static void Detail(string msg)
+    {
+        if (!_verbose) return;
+        Write("INFO", msg, false);
+    }
 
     private static void Write(string level, string msg, bool alsoBepInEx)
     {

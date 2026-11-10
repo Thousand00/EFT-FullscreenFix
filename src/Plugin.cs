@@ -38,7 +38,7 @@ public sealed class Plugin : BasePlugin
 {
     public const string PluginGuid = "dsh.k1.fullscreen";
     public const string PluginName = "全屏修复 K1";
-    public const string PluginVersion = "0.3.0";
+    public const string PluginVersion = "0.3.1";
 
     internal static new ManualLogSource Log;
     internal static Plugin Instance;
@@ -68,6 +68,9 @@ public sealed class Plugin : BasePlugin
             // IL2CPP 的 Start/Update 里绝不再碰 ConfigEntry（v0.2.0 就是在这里崩的）。
             Settings = RetrySettings.From(Configs);
             FullscreenRetrier.PendingSettings = Settings;
+
+            // 让 General/Verbose 真正生效（v0.3.0 只读进了快照却没接上）。
+            K1Log.SetVerbose(Settings.Verbose);
 
             K1Log.Info($"配置快照 → {Settings.Describe()}");
 
