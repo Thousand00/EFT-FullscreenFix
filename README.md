@@ -106,10 +106,13 @@ git switch -c 从k0.4.0继续            # 在那个版本上继续改
 
 **也可以直接下载成品**，不用编译：
 
-- [K 系列 v0.4.0](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/k-v0.4.0) —— 解压到游戏目录即可
-- [主线 v2.0.0-readonly](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/mainline-v2.0.0-readonly) —— 同样解压即用
+| Release | 说明 |
+|---|---|
+| [K 系列 v0.4.0](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/k-v0.4.0) | **已实测成功**。当次画面就能进独占全屏 |
+| [主线 v2.1.0](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/mainline-v2.1.0) | 守住设置，不让它被写坏 |
+| [主线 v2.0.0-readonly](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/mainline-v2.0.0-readonly) | 旧版只读取证，仅作历史留存 |
 
-两个 Release 的 zip 里已经放好 `BepInEx/plugins/<名字>/` 这层目录，直接解压到游戏根目录就能用。
+zip 里已经放好 `BepInEx/plugins/<名字>/` 这层目录，直接解压到游戏根目录就能用。
 
 早期用过不带前缀的 `v0.3.0` / `v0.4.0`，已重命名为 `k-v0.3.0` / `k-v0.4.0`，内容与原来一致。
 
