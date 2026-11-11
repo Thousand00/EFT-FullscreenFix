@@ -8,14 +8,14 @@ using Il2CppInterop.Runtime.Injection;
 
 namespace FullscreenFix
 {
-	[BepInPlugin("dsh.FullscreenFix", "全屏修复", "2.0.0-readonly")]
+	[BepInPlugin("dsh.FullscreenFix", "全屏修复", "2.1.0")]
 	public sealed class Plugin : BasePlugin
 	{
 		public const string PluginGuid = "dsh.FullscreenFix";
 
 		public const string PluginName = "全屏修复";
 
-		public const string PluginVersion = "2.0.0-readonly";
+		public const string PluginVersion = "2.1.0";
 
 		internal new static ManualLogSource Log;
 
@@ -28,7 +28,7 @@ namespace FullscreenFix
 			Instance = this;
 			Log = base.Log;
 			Configs = new ModConfig(base.Config);
-			Log.LogInfo("[全屏修复] v" + PluginVersion + " 载入中（只读记录模式）…");
+			Log.LogInfo("[全屏修复] v" + PluginVersion + " 载入中（守住全屏设置）…");
 			try
 			{
 				// 第一件事：把启动那一瞬的所有状态原样落盘。不写任何东西。
@@ -50,7 +50,7 @@ namespace FullscreenFix
 
 				ClassInjector.RegisterTypeInIl2Cpp<FullscreenWatchdog>();
 				base.AddComponent<FullscreenWatchdog>();
-				Log.LogInfo("[全屏修复] 完成（只读记录器）。快照目录: D:\\EFT-WORKS\\full\\work\\snapshots");
+				Log.LogInfo("[全屏修复] 完成。守住次数: " + SaveSettingsPatch.Rewrites + "，快照目录: D:\\EFT-WORKS\\full\\work\\snapshots");
 			}
 			catch (Exception ex)
 			{

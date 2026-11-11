@@ -16,7 +16,9 @@ namespace FullscreenFix.Patches
 				Harmony harmony = new Harmony("dsh.FullscreenFix");
 				DisplayPatches.Apply(harmony);
 				ScreenModePatch.Apply(harmony);
-				StoredSettingsPatch.Apply(harmony);
+				// StoredSettingsPatch 已废弃：它改的是装箱副本，反汇编证明完全无效，
+				// 真正的落盘拦截在 SaveSettingsPatch。
+				SaveSettingsPatch.Apply(harmony);
 				Plugin.Log.LogInfo("[全屏修复] 补丁注册结束。");
 			}
 		}

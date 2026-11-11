@@ -24,13 +24,13 @@ namespace FullscreenFix.Config
 		{
 			Enabled = cfg.Bind("General", "Enabled", true, "总开关。关闭后本插件什么都不做。");
 
-			ReadOnlyMode = cfg.Bind("General", "ReadOnlyMode", true,
-				"只读记录模式。默认【开启】。\n\n" +
+			ReadOnlyMode = cfg.Bind("General", "ReadOnlyMode", false,
+				"只读记录模式。默认【关闭】。\n\n" +
 				"开启时：插件只读取并记录启动瞬间的状态，不写注册表、不改设置、不注入任何 Harmony 补丁。\n" +
-				"关闭时：才会执行 PlayerPrefs 改写与补丁注入（旧版行为）。\n\n" +
-				"为什么要这个开关：目前正在定位『为什么一个存档能生效、另一个不能』，\n" +
-				"必须先拿到两次启动的原始状态做对比。任何改写都会污染证据。\n" +
-				"等差异定位清楚、改成修复版之后，再关掉它。");
+				"关闭时：正常执行『守住全屏设置』——每次设置落盘前，把 FullScreenMode 改回你选的全屏。\n\n" +
+				"机制：游戏在 ApplyDisplaySettings 收尾时，会把『实际变成了什么模式』写回设置。\n" +
+				"独占全屏建立失败 → Unity 回退成无边框 → 这个『无边框』就被存进 Graphics.ini，\n" +
+				"下次启动读到它，于是永远无边框。本插件在写盘那一刻把这一项改回来。");
 
 			PinNativeResolutionInPlayerPrefs = cfg.Bind("Fix", "PinNativeResolutionInPlayerPrefs", false,
 				"把 HKCU\\Software\\Battlestate Games\\EscapeFromTarkov 里记录的分辨率改成原生分辨率。\n" +
@@ -63,16 +63,20 @@ namespace FullscreenFix.Config
 
 		private void MigrateLegacyConfig()
 		{
-			if (ConfigRevision.Value >= 3)
+			if (ConfigRevision.Value >= 4)
 			{
 				return;
 			}
-			// v2.0.0：把三个曾默认开启的改写给关掉，并打开只读模式。
-			// 不强制覆盖用户手动打开的值，只在明显是旧默认值时纠正。
-			ConfigRevision.Value = 3;
+			// v2.1.0：只读记录模式（默认 true）改成按需开启（默认 false），
+			// 因为「守住全屏设置」已经是被实证过的真修复，不该默认关着。
+			if (ReadOnlyMode.Value)
+			{
+				ReadOnlyMode.Value = false;
+			}
+			ConfigRevision.Value = 4;
 			if (Plugin.Log != null)
 			{
-				Plugin.Log.LogInfo("[全屏修复] 配置已迁移到 v2.0.0（只读记录模式）。");
+				Plugin.Log.LogInfo("[全屏修复] 配置已迁移到 v2.1.0（默认启用守住全屏设置）。");
 			}
 		}
 	}

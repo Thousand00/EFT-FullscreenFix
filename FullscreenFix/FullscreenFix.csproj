@@ -44,6 +44,12 @@
     <Reference Include="Il2Cppmscorlib">
       <HintPath>$(SptRoot)\BepInEx\interop\Il2Cppmscorlib.dll</HintPath><Private>false</Private>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(SptRoot)\BepInEx\interop\Newtonsoft.Json.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppSystem">
+      <HintPath>$(SptRoot)\BepInEx\interop\Il2CppSystem.dll</HintPath><Private>false</Private>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>$(SptRoot)\BepInEx\interop\Assembly-CSharp.dll</HintPath><Private>false</Private>
     </Reference>
