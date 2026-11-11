@@ -97,7 +97,7 @@ namespace FullscreenFix
 			Plugin.Log.LogInfo(stringBuilder.ToString());
 			if (stringBuilder6.Length > 0)
 			{
-				Plugin.Log.LogWarning("[全屏修复] 检测到虚拟/串流显示适配器：\n" + stringBuilder6?.ToString() + "  这类适配器（尤其是网易 UU / GameViewer 的 IDD 虚拟屏）会干扰 DXGI 独占全屏，\n  它们常驻后台时 SetFullscreenState 会返回 0x887A0022 / E_FAIL。\n  建议：在任务栏退出 UU/GameViewer，或在「服务」里把 GameViewerService 停掉后重开游戏。");
+				Plugin.Log.LogInfo("[全屏修复] 另外枚举到这些虚拟/串流显示适配器（仅作记录，不是故障原因）：\n" + stringBuilder6?.ToString() + "  实测结论：本机 DXGI 独占全屏失败与它们无关——所有 0x887A0022 都在它们未运行、未附加时照样复现，\n  且当前只有 1 条活动的显示路径。不要因为它们去卸载软件或停服务。");
 			}
 		}
 	}

@@ -8,14 +8,14 @@ using Il2CppInterop.Runtime.Injection;
 
 namespace FullscreenFix
 {
-	[BepInPlugin("dsh.FullscreenFix", "全屏修复", "2.1.0")]
+	[BepInPlugin("dsh.FullscreenFix", "全屏修复", "2.2.0")]
 	public sealed class Plugin : BasePlugin
 	{
 		public const string PluginGuid = "dsh.FullscreenFix";
 
 		public const string PluginName = "全屏修复";
 
-		public const string PluginVersion = "2.1.0";
+		public const string PluginVersion = "2.2.0";
 
 		internal new static ManualLogSource Log;
 
@@ -28,7 +28,7 @@ namespace FullscreenFix
 			Instance = this;
 			Log = base.Log;
 			Configs = new ModConfig(base.Config);
-			Log.LogInfo("[全屏修复] v" + PluginVersion + " 载入中（守住全屏设置）…");
+			Log.LogInfo("[全屏修复] v" + PluginVersion + " 载入中（守住全屏键 + 写盘保护）…");
 			try
 			{
 				// 第一件事：把启动那一瞬的所有状态原样落盘。不写任何东西。
@@ -44,13 +44,14 @@ namespace FullscreenFix
 				else
 				{
 					Log.LogWarning("[全屏修复] 只读模式 = false：将执行 PlayerPrefs 改写与补丁注入。");
+					FullscreenKeyPin.Apply();
 					PlayerPrefsPinner.Apply();
 					PatchManager.Apply();
 				}
 
 				ClassInjector.RegisterTypeInIl2Cpp<FullscreenWatchdog>();
 				base.AddComponent<FullscreenWatchdog>();
-				Log.LogInfo("[全屏修复] 完成。守住次数: " + SaveSettingsPatch.Rewrites + "，快照目录: D:\\EFT-WORKS\\full\\work\\snapshots");
+				Log.LogInfo("[全屏修复] 完成。守住次数: " + SaveSettingsPatch.Rewrites + "，全屏键修正: " + FullscreenKeyPin.Pins + "，快照目录: D:\\EFT-WORKS\\full\\work\\snapshots");
 			}
 			catch (Exception ex)
 			{

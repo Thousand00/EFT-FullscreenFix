@@ -244,7 +244,7 @@ namespace FullscreenFix
 
 		private static void DumpPlayerLogHead(StringBuilder sb)
 		{
-			string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Low\\Battlestate Games\\EscapeFromTarkov");
+			string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "..", "LocalLow", "Battlestate Games", "EscapeFromTarkov");
 			string path = Path.Combine(dir, "Player.log");
 			if (!File.Exists(path))
 			{

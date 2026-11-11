@@ -7,10 +7,10 @@
 |---|---|---|
 | 目录 | `FullscreenFix/` | `FullscreenFix-K/` |
 | 插件 GUID | `dsh.FullscreenFix` | `dsh.k1.fullscreen` |
-| 当前版本 | `2.1.0` | `0.4.0` |
-| 思路 | **守住设置**：游戏把「实际降级成的模式」写回设置时，在落盘那一刻拦下并改回你选的「全屏」 | **只重发**：等主菜单/模式选择信号对了，再请求一次独占全屏，然后如实报告 |
-| 是否改玩家设置 | 只改「即将写出的那一项」，内存里的运行时状态不动 | 从不 |
-| 状态 | v2.1.0 修「设置被写坏」；**不保证这一次能进独占全屏** | v0.4.0 **已实测成功**（2026-11-10） |
+| 当前版本 | `2.2.0` | `0.4.0` |
+| 思路 | **守住设置**：每次启动时检查 PlayerPrefs 的全屏键，被游戏在运行中改成「无边框」就钉回「全屏」 | **只重发**：等主菜单/模式选择信号对了，再请求一次独占全屏，然后如实报告 |
+| 是否改玩家设置 | 只改被游戏降级过的那个全屏键，不改分辨率、不改你选的模式 | 从不 |
+| 状态 | v2.2.0 修「设置被改坏」；**不保证这一次能进独占全屏** | v0.4.0 **已实测成功**（2026-11-10） |
 | 文档 | `FullscreenFix/README.md` | `FullscreenFix-K/README.md` |
 
 **两个系列会一直各自往下迭代**，互不合并。选哪个装：
@@ -46,9 +46,13 @@ Failed to change display to ExclusiveFullscreen...reverting to FullscreenWindow
 
 **第二层（为什么下次启动还是无边框）**：游戏在 `ApplyDisplaySettings` 收尾时，会把**实际降级成的模式**
 写回设置结构（`Assembly-CSharp.dll` 的 `_ApplyDisplaySettings_d__29.MoveNext` 里 `0xc4347a mov [rdi+0x24], eax`），
-于是「无边框」被存进 `Graphics.ini`，下次启动读到它，连申请独占都不做了。
+于是「无边框」被写回设置。**要更正一个常见误解**：真正被写坏、并驱动下次启动的**不是** `Graphics.ini`，
+而是 HKCU 的 `Screenmanager Fullscreen mode_h3630240806`（`Graphics.ini` 长期恒 `0`，20 次快照里只有 2 次被跟写）。
 
-- 主线治**第二层**：在落盘那一刻把这一项改回来，让你的选择不再被偷偷改掉。
+这个键由 `UnityPlayer.dll` 在**运行中**写入，不是退出时才写：实测 16/16 次都在「显示模式发生变化」之后约 **2.2 秒**
+（1.82–2.61s）把变化后的**实际**模式写进去。所以「只在退出后钉键」的外部工具没用——运行中任何一次抖动都会在约 2 秒内覆盖回去。
+
+- 主线治**第二层**：每次启动时把这个键钉回「全屏」，让你的选择不再被偷偷改掉（**下次启动生效**，引擎读它早于插件加载）。
 - K 系列治**第一层**：等时机对了再请求一次，让当次画面真的变成独占全屏。
 
 ---
@@ -92,7 +96,8 @@ full/
 
 | 标签 | 指向 |
 |---|---|
-| `mainline-v2.1.0` | 主线 2.1.0（守住设置） |
+| `mainline-v2.2.0` | 主线 2.2.0（启动时钉 PlayerPrefs 全屏键） |
+| `mainline-v2.1.0` | 主线 2.1.0（旧：以为写坏的是 Graphics.ini） |
 | `mainline-v2.0.0-readonly` | 主线 2.0.0 只读取证版 |
 | `k-v0.4.0` | K 系列 0.4.0（模式选择界面感知） |
 | `k-v0.3.1` | K 系列 0.3.1 |
@@ -109,7 +114,8 @@ git switch -c 从k0.4.0继续            # 在那个版本上继续改
 | Release | 说明 |
 |---|---|
 | [K 系列 v0.4.0](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/k-v0.4.0) | **已实测成功**。当次画面就能进独占全屏 |
-| [主线 v2.1.0](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/mainline-v2.1.0) | 守住设置，不让它被写坏 |
+| [主线 v2.2.0](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/mainline-v2.2.0) | 守住设置（钉 PlayerPrefs 全屏键） |
+| [主线 v2.1.0](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/mainline-v2.1.0) | 旧版，改错了对象（`Graphics.ini`），仅作历史留存 |
 | [主线 v2.0.0-readonly](https://github.com/Thousand00/EFT-FullscreenFix/releases/tag/mainline-v2.0.0-readonly) | 旧版只读取证，仅作历史留存 |
 
 zip 里已经放好 `BepInEx/plugins/<名字>/` 这层目录，直接解压到游戏根目录就能用。

@@ -165,7 +165,7 @@ namespace FullscreenFix.Patches
 				if (!_reportedFirstResult && fullScreenMode != FullScreenMode.ExclusiveFullScreen)
 				{
 					_reportedFirstResult = true;
-					Plugin.Log.LogWarning("[全屏修复] 首次结果：游戏请求的是独占全屏，但运行时落到了非独占模式。\n  说明本机的 DXGI 独占全屏确实不可用（SetFullscreenState 失败）。\n  按顺序排查：1) 确认 Fix/ForceNativeResolution 与 Fix/PinNativeResolutionInPlayerPrefs 都开着（让请求分辨率等于桌面当前模式，免掉 mode switch）；2) 退出 GameViewer（网易 UU 串流）与 RTSS，或禁用 GameViewer 虚拟显示适配器；3) 更新/重装显卡驱动（勾选恢复出厂设置）；4) 只有在你接受『无边框』替代时才打开 Fix/ForceBorderless。");
+					Plugin.Log.LogWarning("[全屏修复] 首次结果：游戏请求的是独占全屏，但运行时落到了非独占模式。\n  原因几乎总是同一个：调用 SetFullscreenState 的那一瞬间，本进程还没拿到前台。\n  DXGI 此时返回 0x887A0022，Unity 随即回退成无边框，并把『无边框』当成实际模式写回。\n  已实测排除的解释：驱动不支持、请求分辨率与桌面不一致、虚拟显示器/串流软件干扰、\n  多显示器、HDR、刷新率、DPI 缩放——以上都不是原因。\n  能做的：1) 确认 Fix/PinFullscreenKeyInPlayerPrefs 开着，让下次启动重新去申请独占全屏；\n  2) 进入主菜单后按热键手动补一次（运行中申请是能成功的，K 系列已验证）。");
 				}
 			}
 			catch (Exception ex)
